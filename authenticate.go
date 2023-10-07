@@ -3,26 +3,23 @@ package spacehey
 import (
 	"fmt"
 	"net/http"
-	"net/url"
-	"strings"
 )
 
 const spacehey_auth_uri = "https://auth.spacehey.com/"
-const spacehey_cookie = "SPACEHEY_SESSID"
 
 func (c *Client) Authenticate() error {
-	payload := map[string][]string{
-		"client_id": {"web"},
-		"return":    {""},
-		"email":     {c.credentials.email},
-		"password":  {c.credentials.password},
-		"action":    {"login"},
+	payload := payloadMap{
+		"client_id": "web",
+		"return":    "",
+		"email":     c.credentials.email,
+		"password":  c.credentials.password,
+		"action":    "login",
 	}
 
 	request, err := http.NewRequest(
 		http.MethodPost,
 		spacehey_auth_uri,
-		strings.NewReader(url.Values(payload).Encode()),
+		buildForm(payload, false),
 	)
 
 	response, err := c.client.Do(request)
@@ -30,15 +27,15 @@ func (c *Client) Authenticate() error {
 		return err
 	}
 
-	for _, cookie := range response.Cookies() {
-		if cookie.Name == spacehey_cookie {
-			return nil
-		}
+	// Check if the email input exists on the page, if it does, we know that the login failed.
+	if getHtmlField(response.Body, htmlField{
+		tag: "input",
+		attributes: map[string]string{
+			"name": "email",
+		},
+	}) != "" {
+		return fmt.Errorf("failed to log in")
 	}
 
-	if response.Request.URL.Path == "/home" {
-		return nil
-	}
-
-	return fmt.Errorf("authentication failed")
+	return nil
 }

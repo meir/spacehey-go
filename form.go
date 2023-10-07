@@ -7,15 +7,22 @@ import (
 	"strings"
 )
 
-type payloadMap map[string]map[string]string
+type mapOrString interface{}
 
-func buildForm(payload map[string]map[string]string, submit bool) io.Reader {
+type payloadMap map[string]mapOrString
+
+func buildForm(payload payloadMap, submit bool) io.Reader {
 	valuesMap := map[string][]string{}
 
 	for key, value := range payload {
-		for subkey, v := range value {
-			payloadKey := fmt.Sprintf("%s[%s]", key, subkey)
-			valuesMap[payloadKey] = []string{v}
+		switch v := value.(type) {
+		case string:
+			valuesMap[key] = []string{v}
+		case map[string]string:
+			for subkey, subvalue := range v {
+				payloadKey := fmt.Sprintf("%s[%s]", key, subkey)
+				valuesMap[payloadKey] = []string{subvalue}
+			}
 		}
 	}
 

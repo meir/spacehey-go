@@ -20,7 +20,7 @@ const spacehey_edit_uri = "https://spacehey.com/edit"
 
 func (c *Client) UpdateProfile(sections ProfileSections) error {
 	payload := payloadMap{
-		"category": {
+		"category": map[string]string{
 			"about_me":   sections.AboutMe,
 			"meet":       sections.Meet,
 			"general":    sections.General,
